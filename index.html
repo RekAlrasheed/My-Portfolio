@@ -34,11 +34,48 @@
   <link rel="stylesheet" href="assets/css/styles.css" />
 
   <!-- Mark JS active before paint so reveal animations apply without a flash;
-       no-JS users still see all content. -->
-  <script>document.documentElement.classList.add("js");</script>
+       no-JS users still see all content. Also flag the intro-loading state. -->
+  <script>document.documentElement.classList.add("js", "is-loading");</script>
 </head>
 
 <body>
+  <!-- ============ INTRO LOADER ============ -->
+  <div class="preloader" id="preloader" role="presentation" aria-hidden="true">
+    <!-- column curtains (revealed back-to-front as they sweep up) -->
+    <div class="preloader__cols preloader__cols--back">
+      <span></span><span></span><span></span><span></span>
+    </div>
+    <div class="preloader__cols preloader__cols--front">
+      <span></span><span></span><span></span><span></span>
+    </div>
+    <!-- name that fills then slides up -->
+    <div class="preloader__center">
+      <div class="preloader__name-wrap">
+        <div class="preloader__name">
+          <span class="preloader__name-base">Rakan Alrasheed</span>
+          <span class="preloader__name-fill" aria-hidden="true">Rakan Alrasheed</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    /* Self-contained loader control: skips on reduced-motion, and always
+       removes itself + unlocks scroll via a guaranteed timeout. */
+    (function () {
+      var html = document.documentElement;
+      var pre = document.getElementById("preloader");
+      function finish() {
+        html.classList.remove("is-loading");
+        if (pre && pre.parentNode) pre.parentNode.removeChild(pre);
+      }
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        finish();
+      } else {
+        window.setTimeout(finish, 2750);
+      }
+    })();
+  </script>
+
   <!-- ============ HEADER ============ -->
   <header class="header" id="header">
     <nav class="nav container" aria-label="Primary">
