@@ -1,233 +1,159 @@
-/*=============== CHANGE BACKGROUND HEADER ===============*/
-function scrollHeader() {
-  const header = document.getElementById("header");
-  // When the scroll is greater than 50 viewport height, add the scroll-header class to the header tag
-  if (this.scrollY >= 50) header.classList.add("scroll-header");
-  else header.classList.remove("scroll-header");
-}
-window.addEventListener("scroll", scrollHeader);
+/* =============================================================
+   Rakan Alrasheed — Portfolio interactions
+   Vanilla JS, no dependencies.
+   ============================================================= */
+(() => {
+  "use strict";
 
-/*=============== experience MODAL ===============*/
-// Get the modal
-const modalViews = document.querySelectorAll(".experience__modal"),
-  modalBtns = document.querySelectorAll(".experience__button"),
-  modalClose = document.querySelectorAll(".experience__modal-close");
+  const $ = (sel, ctx = document) => ctx.querySelector(sel);
+  const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
 
-// When the user clicks on the button, open the modal
-let modal = function (modalClick) {
-  modalViews[modalClick].classList.add("active-modal");
-};
+  /* ---------- Theme ---------- */
+  const root = document.documentElement;
+  const themeBtn = $("#theme-button");
+  const STORAGE_KEY = "ra-theme";
 
-modalBtns.forEach((mb, i) => {
-  mb.addEventListener("click", () => {
-    modal(i);
-  });
-});
+  const getPreferred = () => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return saved;
+    return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  };
 
-modalClose.forEach((mc) => {
-  mc.addEventListener("click", () => {
-    modalViews.forEach((mv) => {
-      mv.classList.remove("active-modal");
+  const applyTheme = (theme) => {
+    root.setAttribute("data-theme", theme);
+    localStorage.setItem(STORAGE_KEY, theme);
+  };
+
+  applyTheme(getPreferred());
+
+  if (themeBtn) {
+    themeBtn.addEventListener("click", () => {
+      const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      applyTheme(next);
+    });
+  }
+
+  /* ---------- Header shadow on scroll ---------- */
+  const header = $("#header");
+  const onScrollHeader = () => {
+    header.classList.toggle("is-scrolled", window.scrollY > 24);
+  };
+  onScrollHeader();
+  window.addEventListener("scroll", onScrollHeader, { passive: true });
+
+  /* ---------- Mobile nav ---------- */
+  const navToggle = $("#nav-toggle");
+  const navMenu = $("#nav-menu");
+  const closeMenu = () => {
+    navMenu.classList.remove("is-open");
+    navToggle.setAttribute("aria-expanded", "false");
+  };
+  if (navToggle && navMenu) {
+    navToggle.addEventListener("click", () => {
+      const open = navMenu.classList.toggle("is-open");
+      navToggle.setAttribute("aria-expanded", String(open));
+    });
+    $$(".nav__link", navMenu).forEach((link) => link.addEventListener("click", closeMenu));
+  }
+
+  /* ---------- Scroll-spy active nav link ---------- */
+  const sections = $$("main section[id]");
+  const navLinks = new Map($$(".nav__link").map((l) => [l.getAttribute("href"), l]));
+
+  const spy = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const link = navLinks.get(`#${entry.target.id}`);
+        if (!link) return;
+        navLinks.forEach((l) => l.classList.remove("is-active"));
+        link.classList.add("is-active");
+      });
+    },
+    { rootMargin: "-45% 0px -50% 0px" }
+  );
+  sections.forEach((s) => spy.observe(s));
+
+  /* ---------- Reveal on scroll ---------- */
+  const reveals = $$(".reveal");
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (reduceMotion) {
+    reveals.forEach((el) => el.classList.add("is-visible"));
+  } else {
+    const revealer = new IntersectionObserver(
+      (entries, obs) => {
+        entries.forEach((entry, i) => {
+          if (!entry.isIntersecting) return;
+          // light stagger for items revealing together
+          entry.target.style.transitionDelay = `${Math.min(i * 60, 240)}ms`;
+          entry.target.classList.add("is-visible");
+          obs.unobserve(entry.target);
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
+    );
+    reveals.forEach((el) => revealer.observe(el));
+  }
+
+  /* ---------- Typed role ---------- */
+  const roleEl = $("#role-text");
+  if (roleEl && !reduceMotion) {
+    const phrases = [
+      "AI Automation Engineer",
+      "Test Automation Engineer",
+      "LLM & Agentic Systems Engineer",
+      "Robot Framework Specialist",
+    ];
+    let pi = 0, ci = 0, deleting = false;
+
+    const tick = () => {
+      const word = phrases[pi];
+      ci += deleting ? -1 : 1;
+      roleEl.textContent = word.slice(0, ci);
+
+      let delay = deleting ? 45 : 90;
+      if (!deleting && ci === word.length) {
+        delay = 1600;
+        deleting = true;
+      } else if (deleting && ci === 0) {
+        deleting = false;
+        pi = (pi + 1) % phrases.length;
+        delay = 350;
+      }
+      setTimeout(tick, delay);
+    };
+    tick();
+  } else if (roleEl) {
+    roleEl.textContent = "AI Automation Engineer";
+  }
+
+  /* ---------- Project card spotlight ---------- */
+  $$(".work-card").forEach((card) => {
+    card.addEventListener("pointermove", (e) => {
+      const r = card.getBoundingClientRect();
+      card.style.setProperty("--mx", `${e.clientX - r.left}px`);
+      card.style.setProperty("--my", `${e.clientY - r.top}px`);
     });
   });
-});
 
-/*=============== MIXITUP FILTER PORTFOLIO ===============*/
+  /* ---------- Contact form → mailto ---------- */
+  const form = $("#contact-form");
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = $("#name").value.trim();
+      const email = $("#email").value.trim();
+      const message = $("#message").value.trim();
+      const subject = encodeURIComponent(`Portfolio inquiry from ${name || "someone"}`);
+      const body = encodeURIComponent(
+        `Name: ${name}\nEmail: ${email}\n\n${message}`
+      );
+      window.location.href = `mailto:alrasheed.rkan@gmail.com?subject=${subject}&body=${body}`;
+    });
+  }
 
-let mixer = mixitup(".work__container", {
-  selectors: {
-    target: ".work__card",
-  },
-  animation: {
-    duration: 300,
-  },
-});
-
-/* Link active work */
-const workLinks = document.querySelectorAll(".work__item");
-
-function activeWork(workLink) {
-  workLinks.forEach((wl) => {
-    wl.classList.remove("active-work");
-  });
-  workLink.classList.add("active-work");
-}
-
-workLinks.forEach((wl) => {
-  wl.addEventListener("click", () => {
-    activeWork(wl);
-  });
-});
-
-/*=============== SWIPER TESTIMONIAL ===============*/
-
-let swiperTestimonial = new Swiper(".testimonial__container", {
-  spaceBetween: 24,
-  loop: true,
-  grabCursor: true,
-
-  pagination: {
-    el: ".swiper-pagination",
-    clickable: true,
-  },
-
-  breakpoints: {
-    576: {
-      slidesPerView: 2,
-    },
-    768: {
-      slidesPerView: 2,
-      spaceBetween: 48,
-    },
-  },
-});
-
-/*=============== SCROLL SECTIONS ACTIVE LINK ===============*/
-
-const sections = document.querySelectorAll("section[id]");
-
-function scrollActive() {
-  const scrollY = window.pageYOffset;
-
-  sections.forEach((current) => {
-    const sectionHeight = current.offsetHeight,
-      sectionTop = current.offsetTop - 58,
-      sectionId = current.getAttribute("id");
-
-    if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
-      document
-        .querySelector(".nav__menu a[href*=" + sectionId + "]")
-        .classList.add("active-link");
-    } else {
-      document
-        .querySelector(".nav__menu a[href*=" + sectionId + "]")
-        .classList.remove("active-link");
-    }
-  });
-}
-window.addEventListener("scroll", scrollActive);
-
-/*=============== LIGHT DARK THEME ===============*/
-const themeButton = document.getElementById("theme-button");
-const lightTheme = "light-theme";
-const iconTheme = "bx-sun";
-
-// Previously selected topic (if user selected)
-const selectedTheme = localStorage.getItem("selected-theme");
-const selectedIcon = localStorage.getItem("selected-icon");
-
-// We obtain the current theme that the interface has by validating the light-theme class
-const getCurrentTheme = () =>
-  document.body.classList.contains(lightTheme) ? "dark" : "light";
-const getCurrentIcon = () =>
-  themeButton.classList.contains(iconTheme) ? "bx bx-moon" : "bx bx-sun";
-
-// We validate if the user previously chose a topic
-if (selectedTheme) {
-  // If the validation is fulfilled, we ask what the issue was to know if we activated or deactivated the light
-  document.body.classList[selectedTheme === "dark" ? "add" : "remove"](
-    lightTheme
-  );
-  themeButton.classList[selectedIcon === "bx bx-moon" ? "add" : "remove"](
-    iconTheme
-  );
-}
-
-// Activate / deactivate the theme manually with the button
-themeButton.addEventListener("click", () => {
-  // Add or remove the light / icon theme
-  document.body.classList.toggle(lightTheme);
-  themeButton.classList.toggle(iconTheme);
-  // We save the theme and the current icon that the user chose
-  localStorage.setItem("selected-theme", getCurrentTheme());
-  localStorage.setItem("selected-icon", getCurrentIcon());
-});
-
-/*=============== SCROLL REVEAL ANIMATION ===============*/
-const sr = ScrollReveal({
-  origin: "top",
-  distance: "60px",
-  duration: 2500,
-  delay: 400,
-  reset: true,
-});
-
-sr.reveal(`.nav__menu`, {
-  delay: 100,
-  scale: 0.1,
-  origin: "bottom",
-  distance: "300px",
-});
-
-sr.reveal(`.home__data`);
-sr.reveal(`.home__handle`, {
-  delay: 100,
-});
-
-sr.reveal(`.home__social, .home__scroll`, {
-  delay: 100,
-  origin: "bottom",
-});
-
-sr.reveal(`.about__img`, {
-  delay: 100,
-  origin: "left",
-  scale: 0.9,
-  distance: "30px",
-});
-
-sr.reveal(`.about__data, .about__description, .about__button-contact`, {
-  delay: 100,
-  scale: 0.9,
-  origin: "right",
-  distance: "30px",
-});
-
-sr.reveal(`.skills__content`, {
-  delay: 100,
-  scale: 0.9,
-  origin: "bottom",
-  distance: "30px",
-});
-
-sr.reveal(`.experience__title, experience__button`, {
-  delay: 100,
-  scale: 0.9,
-  origin: "top",
-  distance: "30px",
-});
-
-sr.reveal(`.work__card`, {
-  delay: 100,
-  scale: 0.9,
-  origin: "bottom",
-  distance: "30px",
-});
-
-sr.reveal(`.testimonial__container`, {
-  delay: 100,
-  scale: 0.9,
-  origin: "bottom",
-  distance: "30px",
-});
-
-sr.reveal(`.contact__info, .contact__title-info`, {
-  delay: 100,
-  scale: 0.9,
-  origin: "left",
-  distance: "30px",
-});
-
-sr.reveal(`.contact__form, .contact__title-form`, {
-  delay: 100,
-  scale: 0.9,
-  origin: "right",
-  distance: "30px",
-});
-
-sr.reveal(`.footer, footer__container`, {
-  delay: 100,
-  scale: 0.9,
-  origin: "bottom",
-  distance: "30px",
-});
+  /* ---------- Footer year ---------- */
+  const yearEl = $("#year");
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
+})();
