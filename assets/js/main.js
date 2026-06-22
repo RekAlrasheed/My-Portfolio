@@ -99,11 +99,18 @@
   /* ---------- Typed role ---------- */
   const roleEl = $("#role-text");
   if (roleEl && !reduceMotion) {
+    // Rotate through fields / subjects of expertise (type out, delete, next).
     const phrases = [
-      "AI Automation Engineer",
-      "Test Automation Engineer",
-      "LLM & Agentic Systems Engineer",
-      "Robot Framework Specialist",
+      "AI Automation",
+      "Agentic & Multi-Agent Systems",
+      "Large Language Models",
+      "Reinforcement Learning",
+      "Computer Vision",
+      "Retrieval-Augmented Generation",
+      "Test Automation",
+      "Robot Framework",
+      "Prompt Engineering",
+      "Full-Stack Engineering",
     ];
     let pi = 0, ci = 0, deleting = false;
 
@@ -125,7 +132,7 @@
     };
     tick();
   } else if (roleEl) {
-    roleEl.textContent = "AI Automation Engineer";
+    roleEl.textContent = "AI Automation & Agentic Systems";
   }
 
   /* ---------- Project card spotlight ---------- */
