@@ -109,7 +109,6 @@
       "Retrieval-Augmented Generation",
       "Test Automation",
       "Robot Framework",
-      "Prompt Engineering",
       "Full-Stack Engineering",
     ];
     let pi = 0, ci = 0, deleting = false;
